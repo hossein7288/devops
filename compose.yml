@@ -1,0 +1,59 @@
+version: '3.8'
+######################## SERVICES ########################
+services:
+############ ELASTICSEARCH ############
+  elasticsearch:
+    image: docker.arvancloud.ir/elastic/elasticsearch:8.0.1
+    container_name: elasticsearch
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    # port mapping for elsticsearch
+    ports:
+      - 9200:9200
+    # Checking health every 30s with command   
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail elasticsearch:9200/_cluster/health || exit 1"]
+      interval: 30s
+    # always container is up
+    restart: always
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    networks:
+      - elasticNet
+
+############ KIBANA ############
+  kibana:
+    depends_on:
+      - elasticsearch
+    image: docker.arvancloud.ir/elastic/kibana:8.0.1
+    container_name: kibana
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+    # port mapping for kibana
+    ports:
+     - 5601:5601
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - elasticNet
+
+######################## NETWORKS ########################
+networks:
+  elasticNet:
+    driver: bridge
+    ipam:
+      driver: default
+      # define subnet for elasticNet Network
+      config:
+        - subnet: "192.110.110.0/24"
+          gateway: "192.110.110.1"
+
+######################## VOLUMES ########################
+volumes:
+  # define volume locally and can see volume in /var/lib/docker/volumes/
+  elasticsearch-data:
+    driver: local
+  kibana-data:
+    driver: local
